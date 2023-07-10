@@ -18,18 +18,31 @@ int main()
 	if (SP.IsConnected())
 		std::cout << "Connetcted" << std::endl;
 	
-	Recvcom recvcom;
-	Sendcom sendcom;
-	int x = 0;
+	if (!SP.Checking()) exit(0);
+	Recvcom recvcom = { NULL, };
+	Sendcom sendcom = { 0, 0};
 
 	Sleep(100);
 	while (SP.IsConnected())
 	{
+		// Recving ex)
 		int a = SP.ReadData(recvcom);
 		if (a) {
 			std::cout << "size : " << a << "  x: " << recvcom.x << "  y: " << recvcom.y;
-			std::cout << "  swL" << recvcom.swL << "  swR" << recvcom.swR << std::endl;
+			std::cout << "  swL" << (int)recvcom.swL << "  swR" << (int)recvcom.swR << std::endl;
 		}
+
+		//Sending ex)
+		sendcom.x++;
+		if (sendcom.x > 100) sendcom.x = 0;
+
+		sendcom.y = sendcom.y + 2;
+		if (sendcom.y > 100) sendcom.y = 0;
+
+		if (!SP.WriteData(sendcom)) std::cout << "Sending Failed" << std::endl;
+		
 	}
+	Sleep(10000);
+	SP.Reset();
 	return 0;
 }

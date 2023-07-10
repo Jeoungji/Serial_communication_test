@@ -3,6 +3,7 @@
 #define SERIALCLASS_H_INCLUDED
 
 #define ARDUINO_WAIT_TIME 2000
+
 #include <iostream>
 #include <windows.h>
 #include <stdio.h>
@@ -10,14 +11,18 @@
 #include <array>
 
 typedef struct Sendcom {    // size 48
-    unsigned char right;
+    int x; // two char , IMU x
+    int y; // two char , IMU y
+    uint8_t start = 10;
 };
 
-typedef struct Recvcom {
+typedef struct Recvcom { // 11Byte
+    
     unsigned int x; // two char , IMU x
     unsigned int y; // two char , IMU y
-    unsigned int swL; // Right Request
-    unsigned int swR; // fire Request
+    uint8_t swL; // Right Request
+    uint8_t swR; // fire Request
+    uint8_t start = 1;
 };
 
 class Serial
@@ -28,10 +33,13 @@ private:
     COMSTAT status;         /*Get various information about the connection*/
     DWORD errors;           /*Keep track of last error*/
     unsigned short Port;    /*COM port number*/
-    std::string PortName;   /*Naming port name*/
-    std::array <unsigned char, 1> Sbuffer;
-    std::array <unsigned char, 6> Rbuffer;
+
+    std::array <unsigned char, 9> Sbuffer;
+    std::array <unsigned char, 11> Rbuffer;
+
 public:
+    std::string PortName;   /*Naming port name*/
+
     //Initialize Serial communication with the given COM port
     Serial(unsigned short port, std::string Name);
     //Close the connection
@@ -53,6 +61,8 @@ public:
     int ReadData(Recvcom& data); /*Read Serial data to recv struct type, return read buffer size*/
 
     bool WriteData(Sendcom& data); /*Send Serial data to Send struct type, return true on success*/
+
+    bool Checking();
 };
 
 #endif // SERIALCLASS_H_INCLUDED

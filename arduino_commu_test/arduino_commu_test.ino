@@ -2,89 +2,73 @@ const int LED = 5;
 const int SWL = 18; //Right Request
 const int SWR = 19; //fire Request
 
-typedef struct Recvcom {    // size 48
-    unsigned char right;
+typedef struct Recvcom {    // size 9
+    int x; // two char , IMU x
+    int y; // two char , IMU y
+    uint8_t start;  // 마지막 데이터 확인용
 };
 
 typedef struct Sendcom {
     unsigned int x; // two char , IMU x
     unsigned int y; // two char , IMU y
-    unsigned char swL; // Right Request
-    unsigned char swR; // fire Request
+    uint8_t swL; // Right Request
+    uint8_t swR; // fire Request
+    uint8_t start; // 마지막 데이터 확인용
 };
+
+unsigned char Sendbuf[11] = {NULL,};
+unsigned char Recvbuf[9] = {NULL,};
+Sendcom sendcom;
+Recvcom recvcom;
 
 void setup() {
   pinMode(LED, OUTPUT);
-  pinMode(LED_BUILTIN, OUTPUT);
   pinMode (SWL, INPUT);
   pinMode (SWR, INPUT);
   Serial.begin(115200);
   digitalWrite(LED, LOW);
-  digitalWrite(LED_BUILTIN, LOW);
   delay(1000);
+  sendcom.start = 30;
+  sendcom.x = 0;
+  sendcom.y = 0;
+  sendcom.swL = 0;
+  sendcom.swR = 0;
 }
-
-
-unsigned char Sendbuf[6] = {NULL,};
-unsigned char Recvbuf = NULL;
-int Right = 0;
-Sendcom sendcom{0,0,0,0};
-Recvcom recvcom{0} ;
 
 void loop() {
-  if (Right) { 
-    digitalWrite(LED, HIGH);
-    if (digitalRead(SWR)) { // 발사
-      sendcom.swR = 1;
-      digitalWrite(LED_BUILTIN, HIGH);
-    } else {
-      sendcom.swR = 0;
-      digitalWrite(LED_BUILTIN, LOW);
+  // Recving example
+  Serial.readBytes(Recvbuf, 9);
+  if (Recvbuf[8] == 10) {
+    memcpy(&recvcom, Recvbuf, sizeof(Recvbuf));
+    if (recvcom.x  > 50 ) {
+      digitalWrite(LED, HIGH);
+    }
+    else {
+      digitalWrite(LED, LOW);
     }
 
-    if (digitalRead(SWL)) {       // 권한이 있는 상태에서 스위치를 누르면 조작제어 추
-      digitalWrite(LED, LOW);
-      sendcom.swL = 0;
-      sendcom.swR = 0;
-      Right = 0;
-      delay(1000);
-    } 
-  } else {
-    if (digitalRead(SWL))
-      sendcom.swL = 1;
-    else 
-      sendcom.swL = 0;
-    digitalWrite(LED, LOW);
-    sendcom.swR = 0;
+    if (recvcom.y  > 50 ) {
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+    else {
+      digitalWrite(LED_BUILTIN, LOW);
+    }
   }
 
-  sendcom.x = random(0, 360);
-  sendcom.y = random(0, 360);
+  //Sending example
+  if (digitalRead(SWL)) sendcom.swL = 1;
+  else sendcom.swL = 0;
 
-  for (int i = 0; i < 6; i++)
-        Sendbuf[i] = NULL;
-     
-  Sendbuf[5] = sendcom.x / 254;
-  Sendbuf[4] = sendcom.x % 254;
-  Sendbuf[3] = sendcom.y / 254;
-  Sendbuf[2] = sendcom.y % 254;
-  if (sendcom.swL == 1 ||sendcom.swL == 0)
-    Sendbuf[1] = sendcom.swL;
-  if (sendcom.swR == 1 ||sendcom.swR == 0)
-    Sendbuf[0] = sendcom.swR;
-  String a = "      ";
-  for (int i = 0; i < 6; i++) {
-        Sendbuf[i]++; // add bias
-        a.setCharAt(i,Sendbuf[i]);
-  }
-  Serial.print(a);
-  delay(1000);
+  if (digitalRead(SWR)) sendcom.swR = 1;
+  else sendcom.swR = 0;
+
+  sendcom.x = random(0, 9);
+  sendcom.y = random(0, 9);
+
+  memcpy(Sendbuf, &sendcom, sizeof(Sendcom));
+  
+  Serial.write(Sendbuf, sizeof(Sendbuf));
+  delay(10);
 }
 
-void serialEvent() {
-  if (Serial.available()) {
-    recvcom.right = (char)Serial.read();
-    recvcom.right--; // delete bias
-    Right = recvcom.right;
-  }
-}
+

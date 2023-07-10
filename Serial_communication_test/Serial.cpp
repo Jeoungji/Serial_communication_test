@@ -10,7 +10,7 @@ Serial::Serial(unsigned short port, std::string Name) /*COM port number*/
     std::string portname = "COM";
     portname = portname + std::to_string(Port);
 
-    std::cout << "Connecting " << PortName << "Port Number : " << portname << std::endl;
+    std::cout << "[INFO] Connecting " << PortName << " Port Number : " << portname << std::endl;
     //We're not yet connected
     this->connected = false;
 
@@ -29,10 +29,11 @@ Serial::Serial(unsigned short port, std::string Name) /*COM port number*/
         //If not success full display an Error
         if (GetLastError() == ERROR_FILE_NOT_FOUND) {
             //Print Error if neccessary
-            std::cout << "ERROR: Handle was not attached. Reason: %s not available. COM" << Port << std::endl;
+            std::cout << "[ERROR] Handle was not attached. Reason: COM" << Port << " not available." << std::endl;
         }
         else
-            std::cout << "ERROR!!!" << std::endl;
+            std::cout << "[ERROR] Handle was not attached" << std::endl;
+        exit(0);
     }
     else
     {
@@ -43,7 +44,8 @@ Serial::Serial(unsigned short port, std::string Name) /*COM port number*/
         if (!GetCommState(this->hSerial, &dcbSerialParams))
         {
             //If impossible, show an error
-            std::cout << "failed to get current serial parameters!" << std::endl;
+            std::cout << "[ERROR] failed to get current serial parameters!" << std::endl;
+            exit(0);
         }
         else
         {
@@ -59,7 +61,8 @@ Serial::Serial(unsigned short port, std::string Name) /*COM port number*/
             //Set the parameters and check for their proper application
             if (!SetCommState(hSerial, &dcbSerialParams))
             {
-                std::cout << "ALERT: Could not set Serial Port parameters" << std::endl;
+                std::cout << "[ERROR] ALERT: Could not set Serial Port parameters" << std::endl;
+                exit(0);
             }
             else
             {
@@ -72,7 +75,7 @@ Serial::Serial(unsigned short port, std::string Name) /*COM port number*/
             }
         }
     }
-    std::cout << "buffer size : " << Rbuffer.size() << std::endl;
+    std::cout << "[INFO] " << PortName << " Serial buffer size : " << Rbuffer.size() << std::endl;
 }
 
 Serial::~Serial()
@@ -88,20 +91,18 @@ Serial::~Serial()
 }
 
 bool Serial::Reset() {
+    std::cout << "[INFO] reset" << std::endl;
 
-    if (this->connected)
-    {
-        //We're no longer connected
-        this->connected = false;
-        //Close the serial handler
-        CloseHandle(this->hSerial);
-    }
+    //We're no longer connected
+    this->connected = false;
+    //Close the serial handler
+    CloseHandle(this->hSerial);
+    Sleep(500);
 
     //const char* portName;
     std::string portname = "COM";
     portname = portname + std::to_string(Port);
 
-    std::cout << "Connecting " << PortName << "Port Number : " << portname << std::endl;
     //We're not yet connected
     this->connected = false;
 
@@ -120,10 +121,10 @@ bool Serial::Reset() {
         //If not success full display an Error
         if (GetLastError() == ERROR_FILE_NOT_FOUND) {
             //Print Error if neccessary
-            std::cout << "ERROR: Handle was not attached. Reason: %s not available. COM" << Port << std::endl;
+            std::cout << "[ERROR] Handle was not attached. Reason: COM" << Port << " not available." << std::endl;
         }
         else
-            std::cout << "ERROR" << std::endl;
+            std::cout << "[ERROR] Handle was not attached" << std::endl;
         exit(0);
     }
     else
@@ -135,7 +136,8 @@ bool Serial::Reset() {
         if (!GetCommState(this->hSerial, &dcbSerialParams))
         {
             //If impossible, show an error
-            std::cout << "failed to get current serial parameters!" << std::endl;
+            std::cout << "[ERROR] failed to get current serial parameters!" << std::endl;
+            exit(0);
         }
         else
         {
@@ -151,7 +153,8 @@ bool Serial::Reset() {
             //Set the parameters and check for their proper application
             if (!SetCommState(hSerial, &dcbSerialParams))
             {
-                std::cout << "ALERT: Could not set Serial Port parameters" << std::endl;
+                std::cout << "[ERROR] ALERT: Could not set Serial Port parameters" << std::endl;
+                exit(0);
             }
             else
             {
@@ -167,6 +170,7 @@ bool Serial::Reset() {
     }
     return true;
 }
+
 int Serial::ReadData(char* buffers, const unsigned int nbChar)
 {
     //Number of bytes we'll have read
@@ -187,12 +191,10 @@ int Serial::ReadData(char* buffers, const unsigned int nbChar)
         if (this->status.cbInQue > nbChar)
         {
             toRead = nbChar;
-            std::cout << "active if" << std::endl;
         }
         else
         {
             toRead = this->status.cbInQue;
-            std::cout << "active else" << std::endl;
         }
 
         //Try to read the require number of chars, and return the number of read bytes on success
@@ -205,7 +207,6 @@ int Serial::ReadData(char* buffers, const unsigned int nbChar)
     //If nothing has been read, or that an error was detected return 0
     return 0;
 }
-
 
 bool Serial::WriteData(const char* buffer, const unsigned int nbChar)
 {
@@ -248,28 +249,19 @@ int Serial::ReadData(Recvcom& data) {
         if (this->status.cbInQue > Rbuffer.size())
         {
             toRead = Rbuffer.size();
-            std::cout << "active if" << std::endl;
         }
         else
         {
             toRead = this->status.cbInQue;
-            std::cout << "active else" << std::endl;
         }
 
         //Try to read the require number of chars, and return the number of read bytes on success
 
-        if (ReadFile(this->hSerial, &Rbuffer.data()[0], Rbuffer.size(), &bytesRead, NULL))
+        if (ReadFile(this->hSerial, Rbuffer.data(), Rbuffer.size(), &bytesRead, NULL))
         {
-            //Eliminate Bias
-            for (int i = 0; i < Rbuffer.size(); i++)
-                Rbuffer[i]--;
-
             //Decoding
-            data.x = (unsigned int)Rbuffer[5] * 254 + (unsigned int)Rbuffer[4];
-            data.y = (unsigned int)Rbuffer[3] * 254 + (unsigned int)Rbuffer[2];
-            std::cout << "RBuffer : " << (int)Rbuffer[0] << (int)Rbuffer[1] << std::endl;
-            data.swL = Rbuffer[1];
-            data.swR = Rbuffer[0];
+            std::cout << Rbuffer[0] <<  Rbuffer[10]<< std::endl;
+            memcpy(&data, Rbuffer.data(), sizeof(data));
             return bytesRead;
         }
     }
@@ -281,11 +273,7 @@ bool Serial::WriteData(Sendcom& data) {
     DWORD bytesSend;
 
     // Encoding
-    Sbuffer[0] = data.right;
-
-    // Bias
-    for (int i = 0; i < Sbuffer.size(); i++)
-        Sbuffer[i]++;
+    memcpy(Sbuffer.data(), &data, sizeof(data));
 
     //Try to write the buffer on the Serial port
     if (!WriteFile(this->hSerial, Sbuffer.data(), Sbuffer.size(), &bytesSend, 0))
@@ -297,4 +285,44 @@ bool Serial::WriteData(Sendcom& data) {
     }
     else
         return true;
+}
+
+bool Serial::Checking() {
+    int nbChar = Rbuffer.size();
+
+    //Number of bytes we'll have read
+    DWORD bytesRead;
+    //Number of bytes we'll really ask to read
+    unsigned int toRead = 0;
+
+    //Use the ClearCommError function to get status info on the Serial port
+    ClearCommError(this->hSerial, &this->errors, &this->status);
+
+    //Check if there is something to read
+    if (this->status.cbInQue > (nbChar - 1))
+    {
+        //If there is we check if there is enough data to read the required number
+        //of characters, if not we'll read only the available characters to prevent
+        //locking of the application.
+
+        if (this->status.cbInQue > nbChar)
+        {
+            toRead = nbChar;
+        }
+        else
+        {
+            toRead = this->status.cbInQue;
+        }
+
+        //Try to read the require number of chars, and return the number of read bytes on success
+
+        if (ReadFile(this->hSerial, Rbuffer.data(), nbChar, &bytesRead, NULL))
+        {
+            std::cout << Rbuffer[10] << std::endl;
+            if (Rbuffer.back() == 30) return true;
+            else return false;
+        }
+    }
+    //If nothing has been read, or that an error was detected return 0
+    return false;
 }
