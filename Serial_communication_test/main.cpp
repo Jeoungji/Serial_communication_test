@@ -4,10 +4,6 @@
 #include <string>
 #include <iostream>
 
-
-
-
-
 // application reads from the specified serial port and reports the collected data
 int main()
 {

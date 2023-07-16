@@ -1,3 +1,6 @@
+#define sendbufsize 11
+#define recvbufsize 9
+
 const int LED = 5;
 const int SWL = 18; //Right Request
 const int SWR = 19; //fire Request
@@ -16,28 +19,25 @@ typedef struct Sendcom {
     uint8_t start; // 마지막 데이터 확인용
 };
 
-unsigned char Sendbuf[11] = {NULL,};
-unsigned char Recvbuf[9] = {NULL,};
-Sendcom sendcom;
-Recvcom recvcom;
+unsigned char Sendbuf[sendbufsize] = {NULL,};
+unsigned char Recvbuf[recvbufsize] = {NULL,};
+Sendcom sendcom = {NULL, };
+Recvcom recvcom = {NULL, };
 
 void setup() {
   pinMode(LED, OUTPUT);
   pinMode (SWL, INPUT);
   pinMode (SWR, INPUT);
   Serial.begin(115200);
+  Serial.setTimeout(1);
   digitalWrite(LED, LOW);
   delay(1000);
-  sendcom.start = 30;
-  sendcom.x = 0;
-  sendcom.y = 0;
-  sendcom.swL = 0;
-  sendcom.swR = 0;
+  sendcom.start = 65;
 }
 
 void loop() {
   // Recving example
-  Serial.readBytes(Recvbuf, 9);
+  Serial.readBytes(Recvbuf, sizeof(Recvbuf));
   if (Recvbuf[8] == 10) {
     memcpy(&recvcom, Recvbuf, sizeof(Recvbuf));
     if (recvcom.x  > 50 ) {
@@ -68,7 +68,7 @@ void loop() {
   memcpy(Sendbuf, &sendcom, sizeof(Sendcom));
   
   Serial.write(Sendbuf, sizeof(Sendbuf));
-  delay(10);
+  delay(1);
 }
 
 

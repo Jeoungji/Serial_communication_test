@@ -1,6 +1,8 @@
 #include "Serial.h"
 #include <string>
 #include <iostream>
+#include <vector>
+
 #define RESETCODE 8972
 
 Serial::Serial(unsigned short port, std::string Name) /*COM port number*/
@@ -260,7 +262,6 @@ int Serial::ReadData(Recvcom& data) {
         if (ReadFile(this->hSerial, Rbuffer.data(), Rbuffer.size(), &bytesRead, NULL))
         {
             //Decoding
-            std::cout << Rbuffer[0] <<  Rbuffer[10]<< std::endl;
             memcpy(&data, Rbuffer.data(), sizeof(data));
             return bytesRead;
         }
@@ -288,41 +289,52 @@ bool Serial::WriteData(Sendcom& data) {
 }
 
 bool Serial::Checking() {
-    int nbChar = Rbuffer.size();
+    char buffer[Rbufsize] = { NULL, };
+    int a = 0;
+    while (!a)
+        a = this->ReadData(buffer, sizeof(buffer));
 
-    //Number of bytes we'll have read
-    DWORD bytesRead;
-    //Number of bytes we'll really ask to read
-    unsigned int toRead = 0;
-
-    //Use the ClearCommError function to get status info on the Serial port
-    ClearCommError(this->hSerial, &this->errors, &this->status);
-
-    //Check if there is something to read
-    if (this->status.cbInQue > (nbChar - 1))
-    {
-        //If there is we check if there is enough data to read the required number
-        //of characters, if not we'll read only the available characters to prevent
-        //locking of the application.
-
-        if (this->status.cbInQue > nbChar)
-        {
-            toRead = nbChar;
-        }
-        else
-        {
-            toRead = this->status.cbInQue;
-        }
-
-        //Try to read the require number of chars, and return the number of read bytes on success
-
-        if (ReadFile(this->hSerial, Rbuffer.data(), nbChar, &bytesRead, NULL))
-        {
-            std::cout << Rbuffer[10] << std::endl;
-            if (Rbuffer.back() == 30) return true;
-            else return false;
-        }
+    if (buffer[Rbufsize - 1] == 65) {
+        char ack = 'A';
+        this->WriteData(&ack, 1);
+        return true;
     }
-    //If nothing has been read, or that an error was detected return 0
+    std::cout << "[WARNNING] Data is mixed and recovered" << std::endl;
+    std::cout << "[INFO] Data : ";
+    std::vector <short> find;
+    for (short i = 0; i < Rbufsize; i++) {
+        if (buffer[i] == 65) find.push_back(i);
+        printf("%d ", buffer[i]);
+        buffer[i] = NULL;
+    }
+    std::cout << std::endl;
+    if (find.empty()) {
+        std::cout << "[ERROR] Checking Num is not exist" << std::endl;
+        return false;
+    }
+    if (find.size() > 1) {
+        std::cout << "[ERROR] " << find.size() << "Checking Num" << std::endl;
+        return false;
+    }
+    std::cout << "[INFO] Checking Num at " << find[0] << std::endl;
+    short b = 0;
+    while (!b)
+        b = this->ReadData(buffer, 1 + find[0]);
+
+    std::cout << "[INFO] Reading " << b << "Byte" << std::endl;
+    a = 0;
+    while (!a)
+        a = this->ReadData(buffer, sizeof(buffer));
+
+    std::cout << "[INFO] Reading " << a << "Byte" << std::endl;
+
+    if (buffer[Rbufsize - 1] == 65) {
+        char ack = 'A';
+        this->WriteData(&ack, 1);
+        return true;
+    }
+    std::cout << "[ERROR] failed to control it ";
+    for (short i = 0; i < Rbufsize; i++)
+        printf("%d ", buffer[i]);
     return false;
 }

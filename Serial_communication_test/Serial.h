@@ -4,6 +4,9 @@
 
 #define ARDUINO_WAIT_TIME 2000
 
+#define Rbufsize 11
+#define Sbufsize 9
+
 #include <iostream>
 #include <windows.h>
 #include <stdio.h>
@@ -17,7 +20,7 @@ typedef struct Sendcom {    // size 48
 };
 
 typedef struct Recvcom { // 11Byte
-    
+
     unsigned int x; // two char , IMU x
     unsigned int y; // two char , IMU y
     uint8_t swL; // Right Request
@@ -34,8 +37,8 @@ private:
     DWORD errors;           /*Keep track of last error*/
     unsigned short Port;    /*COM port number*/
 
-    std::array <unsigned char, 9> Sbuffer;
-    std::array <unsigned char, 11> Rbuffer;
+    std::array <unsigned char, Sbufsize> Sbuffer;
+    std::array <unsigned char, Rbufsize> Rbuffer;
 
 public:
     std::string PortName;   /*Naming port name*/
